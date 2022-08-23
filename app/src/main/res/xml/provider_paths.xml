@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path
+        name="int_cache_files" path="." />
+    <external-path name="Notifications" path="/" />
+    <external-files-path name="Notifications" path="/" />
+</paths>
