@@ -14,13 +14,13 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.show_notification)?.setOnClickListener {
-            sendNotification()
+            NotificationUtil.sendNotification(this)
         }
 
         findViewById<Button>(R.id.download_notification_sound)?.setOnClickListener {
@@ -231,26 +231,6 @@ class MainActivity : AppCompatActivity() {
      * */
     private fun getRingtoneFromRaw(): Uri {
         return Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + packageName + "/" + R.raw.loco_sound_1)
-    }
-
-    private fun sendNotification() {
-        val notificationChannelId =
-            sharedPref?.getString("notification_id", "sound_1")
-        val builder = NotificationCompat.Builder(
-            this,
-            "text_notification_id$notificationChannelId"
-        )
-            .setSmallIcon(R.drawable.ic_launcher_background)
-            .setContentTitle("My notification $notificationChannelId")
-            .setContentText("${sharedPref?.getString("notification_sound_src", "")}")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            // Set the intent that will fire when the user taps the notification
-            .setAutoCancel(true)
-
-        with(NotificationManagerCompat.from(this)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(1, builder.build())
-        }
     }
 
     private fun deleteNotificationChannel(channelId: String?) {
