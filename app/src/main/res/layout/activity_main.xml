@@ -55,6 +55,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/copy_notification_sound" />
 
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/open_setting"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open Channel Setting"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/delete_notification_sound" />
+
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/sound_list_switch"
         android:layout_width="match_parent"
@@ -63,7 +71,7 @@
         android:text="Show only App specific sounds"
         android:textAllCaps="false"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/delete_notification_sound" />
+        app:layout_constraintTop_toBottomOf="@+id/open_setting" />
 
     <Spinner
         android:id="@+id/notification_list_sp"

@@ -72,6 +72,10 @@ class MainActivity : AppCompatActivity() {
             copyRawToMediaStore("Loco-Sound 2", R.raw.loco_sound_2)
         }
 
+        findViewById<Button>(R.id.open_setting)?.setOnClickListener {
+            openNotificationChannelSettings()
+        }
+
         findViewById<Button>(R.id.delete_notification_sound)?.setOnClickListener {
             deleteRingtonesFromMediaStore("Loco-Sound 1")
             deleteRingtonesFromMediaStore("Loco-Sound 2")
@@ -315,5 +319,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return notificationList
+    }
+
+    private fun openNotificationChannelSettings() {
+        val notificationChannelId =
+            sharedPref?.getString("notification_id", "sound_1")
+
+        val intent: Intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            .putExtra(Settings.EXTRA_CHANNEL_ID, "text_notification_id$notificationChannelId")
+        startActivity(intent)
     }
 }
