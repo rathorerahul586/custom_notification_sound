@@ -48,12 +48,20 @@
         app:layout_constraintTop_toBottomOf="@+id/download_notification_sound" />
 
     <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/default_notification_sound"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Default Notification Sound"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/copy_notification_sound" />
+
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/delete_notification_sound"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Delete Sound from media store"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/copy_notification_sound" />
+        app:layout_constraintTop_toBottomOf="@+id/default_notification_sound" />
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/open_setting"

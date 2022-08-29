@@ -13,6 +13,11 @@ class FireBaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(s: String) {
         super.onNewToken(s)
         Log.e("NEW_TOKEN", s)
+        NotificationUtil.getSharedPref(this).edit().apply{
+            putString("token", s)
+        }.also {
+            it.apply()
+        }
         instanceID()
     }
 
@@ -28,7 +33,7 @@ class FireBaseMessagingService : FirebaseMessagingService() {
         }
 
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        NotificationUtil.sendNotification(this)
+        NotificationUtil.sendNotification(this, remoteMessage.data["sound_name"])
     }
 
     private fun instanceID() {

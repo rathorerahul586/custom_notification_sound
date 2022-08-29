@@ -1,33 +1,28 @@
 package com.example.customnotificationsound
 
 import android.app.Activity
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.ContentResolver
 import android.content.Intent
 import android.content.SharedPreferences
-import android.database.Cursor
-import android.media.MediaScannerConnection
 import android.media.RingtoneManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.Spinner
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
-import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.*
-import java.net.URL
-import java.net.URLConnection
+import java.io.File
+import java.io.FileOutputStream
 
 
 class MainActivity : AppCompatActivity() {
@@ -46,9 +41,16 @@ class MainActivity : AppCompatActivity() {
         sharedPrefEditor = sharedPref?.edit()
         findViewById<Button>(R.id.recreate_notification_channel)?.setOnClickListener {
             soundSource = "Hard codded sounds from raw"
-            recreateChannel(getRingtoneFromRaw())
+            NotificationUtil.recreateChannel(sharedPref, this, getRingtoneFromRaw())
         }
 
+        findViewById<Button>(R.id.default_notification_sound)?.setOnClickListener {
+            NotificationUtil.recreateChannel(
+                sharedPref,
+                this,
+                NotificationUtil.getDefaultRingtoneUri()
+            )
+        }
         findViewById<Button>(R.id.select_notification_sound)?.setOnClickListener {
             val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
             intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
@@ -63,7 +65,7 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.download_notification_sound)?.setOnClickListener {
             CoroutineScope(Dispatchers.IO).launch {
-                downloadAudio()
+                NotificationUtil.downloadAudio(this@MainActivity)
             }
         }
 
@@ -87,7 +89,11 @@ class MainActivity : AppCompatActivity() {
                 override fun onItemSelected(
                     parent: AdapterView<*>?, view: View?, position: Int, id: Long
                 ) {
-                    recreateChannel(Uri.parse(getSoundList()[position].uri))
+                    NotificationUtil.recreateChannel(
+                        sharedPref,
+                        context,
+                        Uri.parse(getSoundList()[position].uri)
+                    )
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -121,41 +127,11 @@ class MainActivity : AppCompatActivity() {
             getOnlyInAppSounds()
         } else {
             soundSource = "Sound from app provided sounds using In-App UI"
-            getRingtoneList()
+            NotificationUtil.getRingtoneList(this)
         }
     }
 
-    private fun downloadAudio() {
-        var count: Int
-        try {
-            val url =
-                URL("http://commondatastorage.googleapis.com/codeskulptor-assets/week7-brrring.m4a")
-            val conexion: URLConnection = url.openConnection()
-            conexion.connect()
-            val path = File(filePath)
-            if (!path.exists()) {
-                path.mkdirs()
-            }
-            val tuneName = "Loco-notification"
-            val storedFile = File(path, "$tuneName.mp3")
-            storedFile.createNewFile()
-            val input: InputStream = BufferedInputStream(url.openStream())
-            val output: OutputStream = FileOutputStream(storedFile)
-            val data = ByteArray(1024)
-            var total: Long = 0
-            while (input.read(data).also { count = it } != -1) {
-                total += count.toLong()
-                output.write(data, 0, count)
-            }
-            output.flush()
-            output.close()
-            input.close()
-            notifyMediaScanner(storedFile.absolutePath)
 
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
-        }
-    }
 
     private fun deleteRingtonesFromMediaStore(tuneName: String) {
         contentResolver.delete(
@@ -184,7 +160,7 @@ class MainActivity : AppCompatActivity() {
         } finally {
             `in`.close()
             out.close()
-            notifyMediaScanner(storedFile.absolutePath)
+            NotificationUtil.notifyMediaScanner(this, storedFile.absolutePath)
         }
     }
 
@@ -194,86 +170,20 @@ class MainActivity : AppCompatActivity() {
                 val uri =
                     result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
                 if (uri != null) {
-                    soundSource ="Sounds from system+app provided sound using system Default UI"
-                    recreateChannel(uri)
+                    soundSource = "Sounds from system+app provided sound using system Default UI"
+                    NotificationUtil.recreateChannel(sharedPref, this, uri)
                 } else {
                     soundSource = "Sound from app provided sounds using system Default UI"
-                    recreateChannel(getRingtoneFromRaw())
+                    NotificationUtil.recreateChannel(sharedPref, this, getRingtoneFromRaw())
                 }
             }
         }
-
-    private fun notifyMediaScanner(filePath: String) {
-        MediaScannerConnection.scanFile(
-            applicationContext,
-            arrayOf(filePath),
-            null
-        ) { _, _ ->
-            Toast.makeText(this, "Added", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun recreateChannel(soundUri: Uri?) {
-        Log.d("TAG", "recreateChannel:soundUri -> $soundUri ")
-        Log.d("TAG", "recreateChannel:soundUri -> ${soundUri?.path} ")
-        val previousId: String = sharedPref?.getString("notification_id", "") ?: "raw"
-        val newChannelId: String = soundUri?.getQueryParameter("title") ?: "raw"
-        sharedPrefEditor?.putString("notification_id", newChannelId)
-        sharedPrefEditor?.putString("notification_sound_src", soundSource)
-        sharedPrefEditor?.apply()
-
-        deleteNotificationChannel(previousId)
-        createNotificationChannel(newChannelId, soundUri)
-    }
 
     /**
      * A method to get notification sound from raw directory
      * */
     private fun getRingtoneFromRaw(): Uri {
         return Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + packageName + "/" + R.raw.loco_sound_1)
-    }
-
-    private fun deleteNotificationChannel(channelId: String?) {
-        NotificationManagerCompat.from(this)
-            .deleteNotificationChannel(
-                "text_notification_id$channelId"
-            )
-    }
-
-    private fun createNotificationChannel(notificationChannelId: String?, soundUri: Uri?) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name: CharSequence = "Testing notification $notificationChannelId"
-            val description = "Added to testing of notification sound"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel =
-                NotificationChannel("text_notification_id$notificationChannelId", name, importance)
-            channel.description = description
-            channel.setSound(
-                soundUri,
-                Notification.AUDIO_ATTRIBUTES_DEFAULT
-            )
-            NotificationManagerCompat.from(this)
-                .createNotificationChannel(channel)
-        }
-    }
-
-    private fun getRingtoneList(): ArrayList<CustomNotificationModel> {
-        val notificationList = ArrayList<CustomNotificationModel>()
-        val manager = RingtoneManager(this)
-        manager.setType(RingtoneManager.TYPE_NOTIFICATION)
-        val cursor: Cursor = manager.cursor
-        while (cursor.moveToNext()) {
-            val title: String = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
-            val uri: String =
-                cursor.getString(RingtoneManager.URI_COLUMN_INDEX) + "/" + cursor.getString(
-                    RingtoneManager.ID_COLUMN_INDEX
-                ) + "?title=" + cursor.getString(
-                    RingtoneManager.TITLE_COLUMN_INDEX
-                )
-
-            notificationList.add(CustomNotificationModel(title, uri))
-        }
-        return notificationList
     }
 
     private fun getOnlyInAppSounds(): ArrayList<CustomNotificationModel> {
